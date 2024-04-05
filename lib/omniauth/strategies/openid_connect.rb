@@ -67,6 +67,7 @@ module OmniAuth
         },
         code_challenge_method: 'S256',
       }
+      option :call_userinfo_endpoint, true
 
       def uid
         user_info.raw_attributes[options.uid_field.to_sym] || user_info.sub
@@ -254,12 +255,21 @@ module OmniAuth
       def user_info
         return @user_info if @user_info
 
-        if access_token.id_token
-          decoded = decode_id_token(access_token.id_token).raw_attributes
+        if options.call_userinfo_endpoint
+          if access_token.id_token
+            decoded = decode_id_token(access_token.id_token).raw_attributes
 
-          @user_info = ::OpenIDConnect::ResponseObject::UserInfo.new access_token.userinfo!.raw_attributes.merge(decoded)
+            @user_info = ::OpenIDConnect::ResponseObject::UserInfo.new access_token.userinfo!.raw_attributes.merge(decoded)
+          else
+            @user_info = access_token.userinfo!
+          end
         else
-          @user_info = access_token.userinfo!
+          decoded = nil
+          if access_token.id_token
+            decoded = decode_id_token(access_token.id_token).raw_attributes
+          end
+
+          @user_info = ::OpenIDConnect::ResponseObject::UserInfo.new decoded
         end
       end
 
